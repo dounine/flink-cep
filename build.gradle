@@ -1,0 +1,75 @@
+group 'com.dounine'
+version '1.0.0-SNAPSHOT'
+
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "com.github.jengelman.gradle.plugins:shadow:4.0.2"
+    }
+}
+
+apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: 'java'
+apply plugin: 'scala'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+configurations {
+    provided
+}
+
+task copyJars(type: Copy) {
+    from configurations.runtime
+    into new File('build/libs/lib')
+}
+compileJava.dependsOn copyJars
+
+shadowJar {
+    zip64 true
+}
+
+def env = hasProperty("pro") ? "RELEASE" : "SNAPSHOT"
+
+sourceSets {
+    main {
+        compileClasspath += configurations.provided
+        resources {
+            srcDirs = ["src/main/resources", "src/main/profile/$env"]
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'DounineFlink',
+                'Implementation-Version': version,
+                'Main-Class': 'com.dounine.scala.flink.App'
+    }
+}
+
+ext {
+    flinkVersion = "1.8-SNAPSHOT"
+    hbaseVersion = "2.0.0"
+    slf4jVersion = "1.7.25"
+}
+
+dependencies {
+    compile 'org.scala-lang:scala-library:2.11.12'
+
+    compile group: 'org.apache.flink', name: 'flink-streaming-scala_2.11', version: "${flinkVersion}"
+    compile group: 'org.apache.flink', name: 'flink-cep-scala_2.11', version: "${flinkVersion}"
+
+    compile group: 'org.slf4j', name: 'slf4j-api', version: "${slf4jVersion}"
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: "${slf4jVersion}"
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
